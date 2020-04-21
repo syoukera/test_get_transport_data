@@ -7,7 +7,3 @@ bash compl.sh
 cd ../tranfit
 bash compl.sh
 ./tranfite
-
-cd ../premix
-bash compl.sh
-./premixe
