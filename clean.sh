@@ -14,3 +14,6 @@ rm output/*out
 rm output/recover
 rm output/restart
 rm output/save
+
+rm main.o
+rm main_e
