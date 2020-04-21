@@ -1,63 +1,98 @@
-      PROGRAM DRIVER
-C*****precision > double
-      IMPLICIT REAL*8 (A-H,O-Z), INTEGER (I-N)
-C*****END precision > double
-C*****precision > single
-C      IMPLICIT REAL (A-H,O-Z), INTEGER (I-N)
-C*****END precision > single
-C
-C          LENLWK allocates the logical working space
-C          LENIWK allocates the integer working space
-C          LENRWK allocates the real working space
-C          LENCWK allocates the character working space
-C          LENSYM is the length of a character string
-C          LIN is the unit from which user input is read
-C          LOUT is the unit to which printed output is written
-C          LRIN is the unit from which the restart file is read
-C          LROUT is the unit to which the save file is written
-C          LRCRVR is the unit to which the scratch save file is written
-C          LINKCK is unit from which the Chemkin Linking file is read
-C          LINTP is unit from which the Transport Linking file is read
-C
-      PARAMETER (LENLWK=570, LENIWK=42000, LENRWK=17000000, LENCWK=140,
-     1           LENSYM=16, LIN=5, LOUT=6, LRIN=14, LROUT=15,
-     2           LRCRVR=16, LINKCK=25, LINKTP=35)
-C
-C          All storage needed by the flame code is allocated in the
-C          following three arrays.  LWORK is for logical variables,
-C          IWORK is for integer variables, RWORK is of real variables,
-C          CWORK is for character variables.
-C
-      DIMENSION IWORK(LENIWK), RWORK(LENRWK)
-      CHARACTER CWORK(LENCWK)*(LENSYM)
-      LOGICAL LWORK(LENLWK)
-C
-      NMAX = 500
-C            open the user input file
-C
-C*****VAX/vms
-C      OPEN (LIN, STATUS='OLD', FORM='FORMATTED')
-C      OPEN (LOUT, STATUS='UNKNOWN', FORM='FORMATTED')
-C      OPEN (LRIN, STATUS='OLD', FORM='UNFORMATTED')
-C      OPEN (LROUT, STATUS='UNKNOWN', FORM='UNFORMATTED')
-C      OPEN (LRCRVR, STATUS='UNKNOWN', FORM='UNFORMATTED')
-C      OPEN (LINKCK, STATUS='OLD', FORM='UNFORMATTED')
-C      OPEN (LINKTP, STATUS='OLD', FORM='UNFORMATTED')
-C*****END VAX/vms
-C
-C*****unix
-      OPEN (LIN, FORM='FORMATTED', FILE='../input/inp')
-      OPEN (LOUT, FORM='FORMATTED', FILE='../output/flout')
-      OPEN (LRIN, FORM='UNFORMATTED', FILE='../output/restart')
-      OPEN (LROUT, FORM='UNFORMATTED', FILE='../output/save')
-      OPEN (LRCRVR, FORM='UNFORMATTED', FILE='../output/recover')
-      OPEN (LINKCK, FORM='UNFORMATTED', FILE='../link/cklink')
-      OPEN (LINKTP, FORM='UNFORMATTED', FILE='../link/tplink')
-C*****END unix
-C
-      CALL PREMIX (NMAX, LIN, LOUT, LINKCK, LINKTP, LRIN, LROUT,
-     1             LRCRVR, LENLWK, LWORK, LENIWK, IWORK, LENRWK,
-     2             RWORK, LENCWK, CWORK)
-C
-      STOP
-      END
+!     test code for obtaining chemkin transport data
+!
+!     general parameter indempendent from each cells 
+module chemkin_params
+      ! unit nuber for input
+      integer, parameter :: unit_tplink = 20
+      integer, parameter :: unit_cklink = 21
+
+      ! chemkin work array
+      integer,      allocatable :: int_ckwk(:)
+      real(8),      allocatable :: real_ckwk(:)
+      character(6), allocatable :: char_ckwk(:)*16
+      
+      ! transport work array
+      integer,      allocatable :: int_tpwk(:)
+      real(8),      allocatable :: real_tpwk(:)
+end module chemkin_params
+
+!   ----------------------------------------
+
+program test_main
+      integer,parameter :: num_species = 53
+      
+      ! phisycal values from CFD calculation
+      real(8) :: T_CFD = 1000d0         ! K
+      real(8) :: P_CFD = 1.01325d5*40   ! Pa
+      real(8) Y_CFD(num_species)        ! Mass fractions
+      real(8) :: delta_t_CFD = 1.0d-12  ! s
+      ! real(8) :: TOLS_CFD(4)            ! Tolerances
+
+      ! logical :: MAKE_OUTPUT = .false.
+
+      ! transport data obtained from this program
+      ! real(8) :: D_diff(num_species)
+      ! real(8) lambda
+      
+      ! Assurme Y has a same secuence as species in ckout
+      data Y_CFD /0.00d+00,0.00d+00,0.00d+00,2.20d-01,0.00d+00,0.00d+00,0.00d+00,0.00d+00,0.00d+00, &
+                  0.00d+00,0.00d+00,0.00d+00,0.00d+00,5.51d-02,0.00d+00,0.00d+00,0.00d+00,0.00d+00, &
+                  0.00d+00,0.00d+00,0.00d+00,0.00d+00,0.00d+00,0.00d+00,0.00d+00,0.00d+00,0.00d+00, &
+                  0.00d+00,0.00d+00,0.00d+00,0.00d+00,0.00d+00,0.00d+00,0.00d+00,0.00d+00,0.00d+00, &
+                  0.00d+00,0.00d+00,0.00d+00,0.00d+00,0.00d+00,0.00d+00,0.00d+00,0.00d+00,0.00d+00, &
+                  0.00d+00,0.00d+00,7.24d-01,0.00d+00,0.00d+00,0.00d+00,0.00d+00,0.00d+00/
+
+      call initialize_chemkin_library
+
+      call get_tranport_data()
+end program test_main
+
+!   ----------------------------------------
+
+subroutine initialize_chemkin_library()
+      use chemkin_params
+
+      integer, parameter :: unit_stdout = 6
+
+      ! length of work array
+      integer len_logi_ckwk
+      integer len_int_ckwk
+      integer len_real_ckwk
+      integer len_char_ckwk
+
+      ! open input unit
+      open(unit_cklink, form='unformatted', file='./link/cklink')
+      open(unit_tplink, form='unformatted', file='./link/tplink')
+
+      !   ------- initialize chemkin work array ---------
+
+      CALL cklen(unit_cklink, unit_stdout, len_int_ckwk, len_real_ckwk, len_char_ckwk)
+
+      allocate(int_ckwk(len_int_ckwk))
+      allocate(real_ckwk(len_real_ckwk))
+      allocate(char_ckwk(len_char_ckwk))
+
+      call ckinit(len_int_ckwk, len_real_ckwk, len_char_ckwk, unit_cklink, &
+                  unit_stdout, int_ckwk, real_ckwk, char_ckwk)
+
+      !   ------- initialize transport work array ---------
+
+      call mclen(unit_tplink, unit_stdout, len_int_tpwk, len_real_tpwk)
+      
+      allocate(int_tpwk(len_int_tpwk))
+      allocate(real_tpwk(len_real_tpwk))
+
+      call mcinit(unit_tplink, unit_stdout, len_int_tpwk, len_real_tpwk, &
+                  int_tpwk, real_tpwk)
+
+end subroutine initialize_chemkin_library
+
+!   ----------------------------------------
+
+subroutine get_tranport_data()
+      ! real(8), intent(out) :: D_diff
+      ! real(8)
+
+      ! call mcmdif(P, T, X, KDIM, IMCWRK, RMCWRK, D)
+      ! call mcacon
+end subroutine get_tranport_data
