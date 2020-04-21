@@ -1,5 +1,5 @@
 !     test code for obtaining chemkin transport data
-!
+
 !     general parameter indempendent from each cells 
 module chemkin_params
       ! unit nuber for input
@@ -19,37 +19,47 @@ end module chemkin_params
 !   ----------------------------------------
 
 program test_main
-      integer,parameter :: num_species = 53
+      integer,parameter :: num_spec = 53
       
       ! phisycal values from CFD calculation
-      real(8) :: T_CFD = 1000d0         ! K
-      real(8) :: P_CFD = 1.01325d5*40   ! Pa
-      real(8) Y_CFD(num_species)        ! Mass fractions
-      real(8) :: delta_t_CFD = 1.0d-12  ! s
-      ! real(8) :: TOLS_CFD(4)            ! Tolerances
+      real(8) :: t_cfd = 1000d0         ! K
+      real(8) :: p_cfd = 1.01325d5*40   ! Pa
+      real(8) y_cfd(num_spec)        ! Mass fractions
+      ! real(8) :: delta_t_cfd = 1.0d-12  ! s
+      ! real(8) :: tols_cfd(4)            ! Tolerances
 
-      ! logical :: MAKE_OUTPUT = .false.
+      ! logical :: make_output = .false.
 
-      ! transport data obtained from this program
-      ! real(8) :: D_diff(num_species)
-      ! real(8) lambda
+      ! output transport data
+      ! mixture diffusion coefficient [CM**2/S]
+      real(8) :: D_mix(num_spec) 
+      ! mixture thermal conductivity [ERG/CM*K*S]
+      real(8) :: Lambda_mix
+      ! themal diffusion ratios [-]
+      real(8) :: TDR(num_spec)
       
       ! Assurme Y has a same secuence as species in ckout
-      data Y_CFD /0.00d+00,0.00d+00,0.00d+00,2.20d-01,0.00d+00,0.00d+00,0.00d+00,0.00d+00,0.00d+00, &
+      data y_cfd /0.00d+00,0.00d+00,0.00d+00,2.20d-01,0.00d+00,0.00d+00,0.00d+00,0.00d+00,0.00d+00, &
                   0.00d+00,0.00d+00,0.00d+00,0.00d+00,5.51d-02,0.00d+00,0.00d+00,0.00d+00,0.00d+00, &
                   0.00d+00,0.00d+00,0.00d+00,0.00d+00,0.00d+00,0.00d+00,0.00d+00,0.00d+00,0.00d+00, &
                   0.00d+00,0.00d+00,0.00d+00,0.00d+00,0.00d+00,0.00d+00,0.00d+00,0.00d+00,0.00d+00, &
                   0.00d+00,0.00d+00,0.00d+00,0.00d+00,0.00d+00,0.00d+00,0.00d+00,0.00d+00,0.00d+00, &
                   0.00d+00,0.00d+00,7.24d-01,0.00d+00,0.00d+00,0.00d+00,0.00d+00,0.00d+00/
 
-      call initialize_chemkin_library
+      call initialize_chemkin_workarray
 
-      call get_tranport_data()
+      call get_tranport_data(t_cfd, p_cfd, y_cfd, num_spec, &
+                             D_mix, Lambda_mix, TDR)
+
+      write(6, *) D_mix
+      write(6, *) Lambda_mix
+      write(6, *) TDR
+
 end program test_main
 
 !   ----------------------------------------
 
-subroutine initialize_chemkin_library()
+subroutine initialize_chemkin_workarray()
       use chemkin_params
 
       integer, parameter :: unit_stdout = 6
@@ -85,14 +95,35 @@ subroutine initialize_chemkin_library()
       call mcinit(unit_tplink, unit_stdout, len_int_tpwk, len_real_tpwk, &
                   int_tpwk, real_tpwk)
 
-end subroutine initialize_chemkin_library
+end subroutine initialize_chemkin_workarray
 
 !   ----------------------------------------
 
-subroutine get_tranport_data()
-      ! real(8), intent(out) :: D_diff
-      ! real(8)
+subroutine get_tranport_data(t_cfd, p_cfd, y_cfd, num_spec, &
+                             D_mix, Lambda_mix, TDR)
+      use chemkin_params
+      
+      ! input values
+      real(8), intent(in) :: t_cfd    ! K
+      real(8), intent(in) :: p_cfd    ! Pa
+      real(8) :: y_cfd(num_spec) ! Mass fractions
+      integer, intent(in) :: num_spec
 
-      ! call mcmdif(P, T, X, KDIM, IMCWRK, RMCWRK, D)
-      ! call mcacon
+      ! output transport data
+      ! mixture diffusion coefficient [CM**2/S]
+      real(8), intent(out) :: D_mix(num_spec) 
+      ! mixture thermal conductivity [ERG/CM*K*S]
+      real(8), intent(out) :: Lambda_mix
+      ! themal diffusion ratios [-]
+      real(8), intent(out) :: TDR(num_spec)
+
+      ! variables for calculations
+      real(8) p_calc ! dyne/cm**2
+      real(8) :: x_calc(num_spec) ! Mole fractions
+      p_calc = p_cfd*0.1d0
+      call ckytx(y_cfd, int_ckwk, real_ckwk, x_calc)
+
+      call mcadif(p_calc, t_cfd, x_calc, real_tpwk, D_mix) 
+      call mcacon (t_cfd, x_calc, real_tpwk, Lambda_mix)
+      call mcatdr (t_cfd, x_calc, int_tpwk, real_tpwk, TDR)
 end subroutine get_tranport_data
