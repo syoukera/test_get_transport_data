@@ -19,24 +19,23 @@ end module chemkin_params
 !   ----------------------------------------
 
 program test_main
+
+      !   ------- start of user input data ---------
+
       integer,parameter :: num_spec = 53
       
       ! phisycal values from CFD calculation
       real(8) :: t_cfd = 298d0       ! K
       real(8) :: p_cfd = 1.01325d5   ! Pa
       real(8) y_cfd(num_spec)        ! Mass fractions
-      ! real(8) :: delta_t_cfd = 1.0d-12  ! s
-      ! real(8) :: tols_cfd(4)            ! Tolerances
-
-      ! logical :: make_output = .false.
 
       ! output transport data
       ! mixture diffusion coefficient [CM**2/S]
       real(8) :: D_mix(num_spec) 
       ! mixture thermal conductivity [ERG/CM*K*S]
       real(8) :: Lambda_mix
-      ! themal diffusion ratios [-]
-      real(8) :: TDR(num_spec)
+      !  mean specific heat at constant pressure [ergs/(gm*K)]
+      real(8) c_p
       
       ! Assurme Y has a same secuence as species in ckout
       data y_cfd /0.00d+00,0.00d+00,0.00d+00,2.20d-01,0.00d+00,0.00d+00,0.00d+00,0.00d+00,0.00d+00, &
@@ -46,14 +45,16 @@ program test_main
                   0.00d+00,0.00d+00,0.00d+00,0.00d+00,0.00d+00,0.00d+00,0.00d+00,0.00d+00,0.00d+00, &
                   0.00d+00,0.00d+00,7.24d-01,0.00d+00,0.00d+00,0.00d+00,0.00d+00,0.00d+00/
 
+      !   ------- end of user input data ---------
+
       call initialize_chemkin_workarray
 
       call get_tranport_data(t_cfd, p_cfd, y_cfd, num_spec, &
-                             D_mix, Lambda_mix, TDR)
+                             D_mix, Lambda_mix, c_p)
 
       write(6, *) D_mix
       write(6, *) Lambda_mix
-      write(6, *) TDR
+      write(6, *) c_p
 
 end program test_main
 
@@ -100,7 +101,7 @@ end subroutine initialize_chemkin_workarray
 !   ----------------------------------------
 
 subroutine get_tranport_data(t_cfd, p_cfd, y_cfd, num_spec, &
-                             D_mix, Lambda_mix, TDR)
+                             D_mix, Lambda_mix, c_p)
       use chemkin_params
       
       ! input values
@@ -114,8 +115,8 @@ subroutine get_tranport_data(t_cfd, p_cfd, y_cfd, num_spec, &
       real(8), intent(out) :: D_mix(num_spec) 
       ! mixture thermal conductivity [ERG/CM*K*S]
       real(8), intent(out) :: Lambda_mix
-      ! themal diffusion ratios [-]
-      real(8), intent(out) :: TDR(num_spec)
+      !  mean specific heat at constant pressure [ergs/(gm*K)]
+      real(8), intent(out) :: c_p
 
       ! variables for calculations
       real(8) p_calc ! dyne/cm**2
@@ -125,5 +126,5 @@ subroutine get_tranport_data(t_cfd, p_cfd, y_cfd, num_spec, &
 
       call mcadif(p_calc, t_cfd, x_calc, real_tpwk, D_mix) 
       call mcacon (t_cfd, x_calc, real_tpwk, Lambda_mix)
-      call mcatdr (t_cfd, x_calc, int_tpwk, real_tpwk, TDR)
+      call ckcpbs(t_cfd, y_cfd, int_ckwk, real_ckwk, c_p)
 end subroutine get_tranport_data
