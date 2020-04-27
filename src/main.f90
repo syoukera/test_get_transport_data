@@ -8,10 +8,14 @@ program test_main
       integer,parameter :: num_spec = 53
       
       ! phisycal values from CFD calculation
-      real(8) :: t_cfd = 298d0       ! K
-      real(8) :: p_cfd = 1.01325d5   ! Pa
-      real(8) y_cfd(num_spec)        ! Mass fractions
+      real(8) :: p_cfd = 1.01325d5*40   ! Pa
+      real(8) :: t_cfd = 1000d0         ! K
+      real(8) y_cfd(num_spec)           ! Mass fractions
+      real(8) :: delta_t_cfd = 1.0d-12  ! s
+      real(8) :: tols_cfd(4)            ! Tolerances
 
+      ! logical :: MAKE_OUTPUT = .false.
+      
       ! output transport data
       ! mixture diffusion coefficient [CM**2/S]
       real(8) :: D_mix(num_spec) 
@@ -28,6 +32,9 @@ program test_main
                   0.00d+00,0.00d+00,0.00d+00,0.00d+00,0.00d+00,0.00d+00,0.00d+00,0.00d+00,0.00d+00, &
                   0.00d+00,0.00d+00,7.24d-01,0.00d+00,0.00d+00,0.00d+00,0.00d+00,0.00d+00/
 
+      ! tolerance values for ODE solver
+      data tols_cfd /1.d-8, 1.d-20, 1.d-5, 1.d-5/
+
       !   ------- end of user input data ---------
 
       call initialize_chemkin_workarray(p_cfd)
@@ -38,6 +45,8 @@ program test_main
       write(6, *) D_mix
       write(6, *) Lambda_mix
       write(6, *) c_p
+
+      call get_next_TY(t_cfd, y_cfd, delta_t_cfd, tols_cfd)
 
 end program test_main
 
@@ -72,8 +81,21 @@ subroutine get_tranport_data(t_cfd, p_cfd, y_cfd, num_spec, &
       call ckcpbs(t_cfd, y_cfd, int_ckwk, real_ckwk, c_p)
 end subroutine get_tranport_data
 
-subroutine get_next_TY()
+subroutine get_next_TY(t_cfd, y_cfd, delta_t_cfd, tols_cfd)
+      use chemkin_params, only: kk
 
+      real(8), intent(in) :: t_cfd
+      real(8), intent(in) :: y_cfd(kk)
+      real(8), intent(in) :: delta_t_cfd
+      real(8), intent(in) :: tols_cfd(4)
+      
+      integer, parameter :: lcklink = 25
+      integer, parameter :: ltmout  = 26
+      integer, parameter :: lskout  = 27
+      
+      OPEN (lcklink, form='unformatted',  file='link/cklink')
+      OPEN (ltmout,   form='formatted',   file='output/tmout')
+      OPEN (lskout,   form='formatted',   file='output/skout')
 
 end subroutine get_next_TY
 
