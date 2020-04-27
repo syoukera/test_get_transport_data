@@ -5,5 +5,5 @@ ckinterpe
 tranfite
 premixe
 *.mod
-get_transport
+get_*
 log.*
