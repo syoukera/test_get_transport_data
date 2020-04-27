@@ -128,3 +128,18 @@ subroutine get_tranport_data(t_cfd, p_cfd, y_cfd, num_spec, &
       call mcacon (t_cfd, x_calc, real_tpwk, Lambda_mix)
       call ckcpbs(t_cfd, y_cfd, int_ckwk, real_ckwk, c_p)
 end subroutine get_tranport_data
+
+subroutine get_next_TY()
+
+
+end subroutine get_next_TY
+
+      SUBROUTINE TEMPT (TIME, TEMP)
+      IMPLICIT DOUBLE PRECISION (A-H, O-Z), INTEGER (I-N)
+      RETURN
+      END
+      
+      SUBROUTINE VOLT (TIME, VOL, DVDT)
+      IMPLICIT DOUBLE PRECISION (A-H, O-Z), INTEGER (I-N)
+      RETURN
+      END
