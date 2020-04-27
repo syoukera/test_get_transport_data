@@ -1,6 +1,7 @@
 !     test code for obtaining chemkin transport data
 
 program test_main
+      use chemkin_params, only: initialize_chemkin_workarray
 
       !   ------- start of user input data ---------
 
@@ -29,7 +30,7 @@ program test_main
 
       !   ------- end of user input data ---------
 
-      call initialize_chemkin_workarray
+      call initialize_chemkin_workarray(p_cfd)
 
       call get_tranport_data(t_cfd, p_cfd, y_cfd, num_spec, &
                              D_mix, Lambda_mix, c_p)
