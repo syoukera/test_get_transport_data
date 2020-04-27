@@ -6,11 +6,10 @@ rm tranfit/*.o
 rm tranfit/tranfite
 
 rm src/*.o
+rm src/*.mod
 
 rm link/*link
 
 rm output/*out
 
-rm main.o
-rm get_transport
-rm *.mod
+rm get_CFD_values
