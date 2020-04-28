@@ -2,11 +2,12 @@
       use chemkin_params
 
       IMPLICIT DOUBLE PRECISION (A-H, O-Z), INTEGER (I-N)
-      real(8), intent(in) :: t_cfd
-      real(8), intent(in) :: p_cfd
-      real(8), intent(in) :: y_cfd(kk)
-      real(8), intent(in) :: delta_t_cfd
-      real(8), intent(in) :: tols_cfd(4)
+
+      real(8), intent(inout) :: t_cfd
+      real(8), intent(in)    :: p_cfd
+      real(8), intent(inout) :: y_cfd(kk)
+      real(8), intent(in)    :: delta_t_cfd
+      real(8), intent(in)    :: tols_cfd(4)
       LOGICAL LSENS
 
       DATA LIN/5/, LOUT/6/, LINKCK/25/, LSAVE/7/, LIGN/9/, LREST/10/
@@ -105,7 +106,7 @@ C
      6            char_ckwk(NKSYM), char_ckwk(IPCCK),
      6            p_cfd, t_cfd, y_cfd, delta_t_cfd, tols_cfd)
 C
-      STOP
+      RETURN
       END
 C
 C---------------------------------------------------------------
@@ -118,11 +119,11 @@ C
      6                  p_cfd, t_cfd, y_cfd, delta_t_cfd, tols_cfd)
 
       IMPLICIT DOUBLE PRECISION (A-H, O-Z), INTEGER (I-N)
-      real(8), intent(in) :: t_cfd
-      real(8), intent(in) :: p_cfd
-      real(8), intent(in) :: y_cfd(kk)
-      real(8), intent(in) :: delta_t_cfd
-      real(8), intent(in) :: tols_cfd(4)
+      real(8), intent(inout) :: t_cfd
+      real(8), intent(in)    :: p_cfd
+      real(8), intent(inout) :: y_cfd(kk)
+      real(8), intent(in)    :: delta_t_cfd
+      real(8), intent(in)    :: tols_cfd(4)
 C
       DIMENSION Z(*), ZP(*), XMOL(*), DWORK(*), IDWORK(*), SDWORK(*),
      1          RTOL(*), ATOL(*), RPAR(*), IPAR(*), TOLS(4)
@@ -344,6 +345,11 @@ C
      3                IPAR, ATOL, RTOL, TOLS, XMOL, KSYM)
       ENDIF
 C
+C        Return the value to CFD
+C
+      t_cfd = Z(1)
+      y_cfd = Z(2:KK+1)
+C
 7000  FORMAT (/5X,'Restart calculation from previous solution.'/)
 7100  FORMAT ('  Pressure (atm)  =', 1PE12.4,/,
      1        '  Temperature (K) =', 1PE12.4,/,
@@ -357,7 +363,7 @@ C
 7113  FORMAT (/5X,'Volume is a function of time.'/)
 7114  FORMAT (/5X,'Temperature is held constant.'/)
 7115  FORMAT (/5X,'Temperature is a function of time.'/)
-      STOP
+      RETURN
       END
 C
 C----------------------------------------------------------------------
@@ -392,6 +398,7 @@ C
 C
 C       SET PARAMETERS FOR DASAC
 C
+      INFO(1) = 1
       INFO(3) = 1
       INFO(2) = 1
 C

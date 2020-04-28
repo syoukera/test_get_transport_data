@@ -48,6 +48,8 @@ program test_main
 
       call senkin(t_cfd, p_cfd, y_cfd, delta_t_cfd, tols_cfd)
 
+      write(6, *) t_cfd, y_cfd
+
 end program test_main
 
 !   ----------------------------------------
