@@ -81,27 +81,6 @@ subroutine get_tranport_data(t_cfd, p_cfd, y_cfd, num_spec, &
       call ckcpbs(t_cfd, y_cfd, int_ckwk, real_ckwk, c_p)
 end subroutine get_tranport_data
 
-subroutine get_next_TY(t_cfd, y_cfd, delta_t_cfd, tols_cfd)
-      use chemkin_params, only: kk
-
-      real(8), intent(in) :: t_cfd
-      real(8), intent(in) :: y_cfd(kk)
-      real(8), intent(in) :: delta_t_cfd
-      real(8), intent(in) :: tols_cfd(4)
-      
-      integer, parameter :: lcklink = 25
-      integer, parameter :: ltmout  = 26
-      integer, parameter :: lskout  = 27
-      
-      ! OPEN (lcklink, form='unformatted',  file='link/cklink')
-      ! OPEN (ltmout,   form='formatted',   file='output/tmout')
-      ! OPEN (lskout,   form='formatted',   file='output/skout')
-
-      ! call senkin_1step(lin, lout, linkck, lsave, lign, lrest, &
-      !             lenrwk, real_ckwk, leniwk, int_ckwk, lencwk)
-
-end subroutine get_next_TY
-
       SUBROUTINE TEMPT (TIME, TEMP)
       IMPLICIT DOUBLE PRECISION (A-H, O-Z), INTEGER (I-N)
       RETURN
