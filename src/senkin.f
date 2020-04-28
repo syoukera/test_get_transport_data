@@ -1,5 +1,6 @@
       SUBROUTINE SENKIN (t_cfd, p_cfd, y_cfd, delta_t_cfd, tols_cfd)
       use chemkin_params
+      use output, only: make_output
 
       IMPLICIT DOUBLE PRECISION (A-H, O-Z), INTEGER (I-N)
 
@@ -80,13 +81,10 @@ C
 C
 C          CHECK FOR SUFFICIENT SPACE
 C
-      WRITE (6, 7020) len_int_ckwk, LITOT, len_real_ckwk, LRTOT, 
-     1                len_char_ckwk, LCTOT
- 7020 FORMAT (/, '                Working Space Requirements',
-     1        /, '                 Provided        Required ',
-     2        /, ' Integer  ', 2I15,
-     3        /, ' Real     ', 2I15,
-     4        /, ' Character', 2I15, /)
+      if (make_output) then
+            WRITE (6, 7020) len_int_ckwk, LITOT, len_real_ckwk, LRTOT, 
+     1                      len_char_ckwk, LCTOT
+      endif
 C
       IF (LRTOT.GT.len_real_ckwk .OR. LITOT.GT.len_int_ckwk 
      1                           .OR. LCTOT.GT.len_char_ckwk) THEN
@@ -106,6 +104,12 @@ C
      6            char_ckwk(NKSYM), char_ckwk(IPCCK),
      6            p_cfd, t_cfd, y_cfd, delta_t_cfd, tols_cfd)
 C
+ 7020 FORMAT (/, '                Working Space Requirements',
+     1        /, '                 Provided        Required ',
+     2        /, ' Integer  ', 2I15,
+     3        /, ' Real     ', 2I15,
+     4        /, ' Character', 2I15, /)
+
       RETURN
       END
 C
@@ -117,8 +121,12 @@ C
      3                  SDWORK, RPAR, IPAR, Z, ZP, RTOL, ATOL, XMOL,
      5                  KSYM, CCKWRK,
      6                  p_cfd, t_cfd, y_cfd, delta_t_cfd, tols_cfd)
+      
+      use output, only: make_output
 
       IMPLICIT DOUBLE PRECISION (A-H, O-Z), INTEGER (I-N)
+      
+
       real(8), intent(inout) :: t_cfd
       real(8), intent(in)    :: p_cfd
       real(8), intent(inout) :: y_cfd(kk)
@@ -183,94 +191,28 @@ C
 C
 C       PHYSICAL INITIAL CONDITIONS
 C
-C     CASES:
-C
-C     ICASE = 1 == CONSTANT PRESSURE
-C     ICASE = 2 == CONSTANT VOLUME
-C     ICASE = 3 == VOLUME GIVEN IN TIME
-C     ICASE = 4 == CONSTANT TEMPERATURE, PRESSURE
-C     ICASE = 5 == TEMPERATURE GIVEN IN TIME
-C
-      IF (RESTRT) THEN
-C
-C          READ RESTART DATA
-C
-         READ (LREST) IDUM
-         READ (LREST) IDUM, KKR
-C
-         IF (KKR .NE. KK)
-     1      WRITE (LOUT, '(/3X, A, /9X, A, /9X, A, I6, /9X, A, I6)')
-     2      'Stop! Number of species in restart file does not match',
-     3      'the number from the CHEMKIN link file.',
-     4      'No. species in restart file = ', KKR,
-     5      'No. species in linking file = ', KK
-C
-         READ (LREST) TFIL, P, T, (XMOL(K), K = 1, KK)
-         IF (TRES .LT. 0.) THEN
-            TIM = TFIL
-         ELSE
-            TIM = TRES
+      TIM = 0.E+0
+      IF (ICASE .LE. 3) THEN
+         Z(1) = T
+         CALL CKXTY  (XMOL, IPAR(IPICK), RPAR(IPRCK), Z(2))
+         CALL CKRHOY (P, T, Z(2), IPAR(IPICK), RPAR(IPRCK), RHO)
+         IF (ICASE .EQ. 3) THEN
+            CALL VOLT (TIM, VZERO, DVDT)
+            TOTMAS = RHO * VZERO
          ENDIF
-C
-         IF (ICASE .LE. 3) THEN
-            Z(1) = T
-            DO 50 K = 1, KK
-               Z(K+1) = XMOL(K)
-   50       CONTINUE
-            CALL CKYTX  (Z(2), IPAR(IPICK), RPAR(IPRCK), XMOL)
-            CALL CKRHOY (P, T, Z(2), IPAR(IPICK), RPAR(IPRCK), RHO)
-            IF (ICASE .EQ. 3) THEN
-               CALL VOLT (TIM, VZERO, DVDT)
-               TOTMAS = RHO * VZERO
-            ENDIF
-C
-         ELSEIF (ICASE .EQ. 4) THEN
-            DO 60 K = 1, KK
-               Z(K) = XMOL(K)
-   60       CONTINUE
-            CALL CKYTX  (Z, IPAR(IPICK), RPAR(IPRCK), XMOL)
-            CALL CKRHOY (P, T, Z, IPAR(IPICK), RPAR(IPRCK), RHO)
-C
-         ELSEIF (ICASE .EQ. 5) THEN
-            DO 70 K = 1, KK
-               Z(K) = XMOL(K)
-   70       CONTINUE
-            CALL TEMPT  (TIM, T)
-            CALL CKYTX  (Z, IPAR(IPICK), RPAR(IPRCK), XMOL)
-            CALL CKRHOY (P, T, Z, IPAR(IPICK), RPAR(IPRCK), RHO)
-C
-         ELSE
-            WRITE (LOUT, '(/1X,A,/)') ' Stop, ICASE not found in BEGIN.'
-            STOP
-         ENDIF
-C
+
+      ELSEIF (ICASE .EQ. 4) THEN
+         CALL CKXTY  (XMOL, IPAR(IPICK), RPAR(IPRCK), Z)
+         CALL CKRHOY (P, T, Z, IPAR(IPICK), RPAR(IPRCK), RHO)
+
+      ELSEIF (ICASE .EQ. 5) THEN
+         CALL TEMPT  (TIM, T)
+         CALL CKXTY  (XMOL, IPAR(IPICK), RPAR(IPRCK), Z)
+         CALL CKRHOY (P, T, Z, IPAR(IPICK), RPAR(IPRCK), RHO)
+
       ELSE
-C
-C      ORIGINAL JOB
-C
-         TIM = 0.E+0
-         IF (ICASE .LE. 3) THEN
-            Z(1) = T
-            CALL CKXTY  (XMOL, IPAR(IPICK), RPAR(IPRCK), Z(2))
-            CALL CKRHOY (P, T, Z(2), IPAR(IPICK), RPAR(IPRCK), RHO)
-            IF (ICASE .EQ. 3) THEN
-               CALL VOLT (TIM, VZERO, DVDT)
-               TOTMAS = RHO * VZERO
-            ENDIF
-C
-         ELSEIF (ICASE .EQ. 4) THEN
-            CALL CKXTY  (XMOL, IPAR(IPICK), RPAR(IPRCK), Z)
-            CALL CKRHOY (P, T, Z, IPAR(IPICK), RPAR(IPRCK), RHO)
-C
-         ELSEIF (ICASE .EQ. 5) THEN
-            CALL TEMPT  (TIM, T)
-            CALL CKXTY  (XMOL, IPAR(IPICK), RPAR(IPRCK), Z)
-            CALL CKRHOY (P, T, Z, IPAR(IPICK), RPAR(IPRCK), RHO)
-C
-         ELSE
-            WRITE (LOUT, '(/1X,A,/)') ' Stop, ICASE not found in BEGIN.'
-            STOP
-         ENDIF
+         WRITE (LOUT, '(/1X,A,/)') ' Stop, ICASE not found in BEGIN.'
+         STOP
       ENDIF
 C
       IF (RHO .LE. 0.0) THEN
@@ -280,41 +222,17 @@ C
 C
 C       PRINT INITIAL CONDITIONS
 C
-      IF (RESTRT) THEN
-         WRITE (LOUT, 7000)
-         WRITE (LIGN, 7000)
-      ENDIF
+
 C
-      IF (ICASE .EQ. 1) THEN
-         WRITE (LOUT, 7111)
-         WRITE (LIGN, 7111)
-      ELSEIF (ICASE .EQ. 2) THEN
-         WRITE (LOUT, 7112)
-         WRITE (LIGN, 7112)
-      ELSEIF (ICASE .EQ. 3) THEN
-         WRITE (LOUT, 7113)
-         WRITE (LIGN, 7113)
-      ELSEIF (ICASE .EQ. 4) THEN
-         WRITE (LOUT, 7114)
-         WRITE (LIGN, 7114)
-      ELSEIF (ICASE .EQ. 5) THEN
-         WRITE (LOUT, 7115)
-         WRITE (LIGN, 7115)
-      ENDIF
-      WRITE (LOUT, 7103)
-      WRITE (LIGN, 7103)
-      WRITE (LOUT, 7100) PA, T, RHO
-      WRITE (LIGN, 7100) PA, T, RHO
-      IF (ICASE .EQ. 3) THEN
-         WRITE (LOUT, 7104) TOTMAS
-         WRITE (LIGN, 7104) TOTMAS
-      ENDIF
-      WRITE (LIGN, 7101)
-      WRITE (LOUT, 7101)
-      DO 130 K = 1, KK
-         WRITE (LIGN, 7102) KSYM(K), XMOL(K)
-         WRITE (LOUT, 7102) KSYM(K), XMOL(K)
-130   CONTINUE
+      if (make_output) then
+            WRITE (LOUT, 7111)
+            WRITE (LOUT, 7103)
+            WRITE (LOUT, 7100) PA, T, RHO
+            WRITE (LOUT, 7101)
+            DO 130 K = 1, KK
+               WRITE (LOUT, 7102) KSYM(K), XMOL(K)
+130         CONTINUE
+      endif
 C
 C        INTEGRATION ROUTINE TO RUN PROBLEM
 C
@@ -372,17 +290,11 @@ C
      1                   PATM, TLIM, LOUT, LSAVE, LIGN, LSENS, LIW,
      2                   LRW, LSW, Z, ZP, ELWRK, IELWRK, SWORK, RPAR,
      3                   IPAR, ATOL, RTOL, TOLS, XMOL, KSYM)
-C
-C  This module directs the integration for cases 1-3, where temperature
-C  is not known and the energy equation is included.
-C
-C*****precision > double
+      
+      use output, only: make_output
+
       IMPLICIT DOUBLE PRECISION (A-H, O-Z), INTEGER (I-N)
-C*****END precision > double
-C*****precision > single
-C      IMPLICIT REAL (A-H, O-Z), INTEGER (I-N)
-C*****END precision > single
-C
+
       DIMENSION Z(NSYS,*), ZP(NSYS,*), ELWRK(*), IELWRK(*), SWORK(*),
      1          ISEN(5), RPAR(*), IPAR(*), INFO(15), RTOL(NSYS,*),
      2          ATOL(NSYS,*), TOLS(*), XMOL(*)
@@ -423,40 +335,16 @@ C
 C
 C       COMPUTE INITIAL DERIVATIVES
 C
-C*****precision > single
-CC
-C      CALL SDINIT (NSYS, ISEN(5), TIM, RPAR, IPAR, ZP, Z,
-C     1            IRES, ISEN(1), ISEN(4), RES, DRES)
-CC
-C*****END precision > single
-C*****precision > double
-C
       CALL DDINIT (NSYS, ISEN(5), TIM, RPAR, IPAR, ZP, Z,
      1             IRES, ISEN(1), ISEN(4), RES, DRES)
 C
-C*****END precision > double
-C
 C       PRINT    Initial condition.
 C
-      WRITE (LSAVE) LSENS
-      WRITE (LSAVE) NSYS, KK, II
-      WRITE (LSAVE) TIM, P, (Z(I,1), I = 1, NSYS)
-      IF (LSENS) WRITE (LSAVE) (( Z(I,J), I=1,NSYS), J = 2, II+1)
-      WRITE (LOUT, '(//A/)') '  Time Integration:'
-      WRITE (LIGN, '(//A/)') '  Time Integration:'
-      CALL TEXT13 (IPAR, KK, KSYM, LIGN, LOUT,
-     1             P, PATM, RPAR, TIM, XMOL, Z)
-C
-C       A variable used for sensitivity analysis. Z(ls,J) --> ls = 1: temperature, ls = 2...NSYS: species
-C
-      ls = 1
-C
-C       PRINT    Sensitivity coefficient.
-C
-      IF (LSENS) THEN
-         WRITE (LIGN, '(A)') ' Sensitivity coefficient'
-         WRITE (LIGN, '(I4, 1PE12.4)') (J-1, Z(ls,J), J = 2, II+1)
-      ENDIF
+      if (make_output) then
+            WRITE (LOUT, '(//A/)') '  Time Integration:'
+            CALL TEXT13 (IPAR, KK, KSYM, LOUT, LOUT,
+     1                  P, PATM, RPAR, TIM, XMOL, Z)
+      end if
 C
 C       INTEGRATION LOOP
 C
@@ -469,16 +357,9 @@ C
       TIMOLD = TIM
       TOLD   = Z(1,1)
 C
-C*****precision > single
-C      CALL SDASAC (RES, NSYS, TIM, Z, ZP, TSTOP, INFO, ISEN,
-C     1             RTOL, ATOL, IDID, SWORK, LSW, ELWRK, LRW,
-C     2             IELWRK, LIW, RPAR, IPAR, JAC, DRES, DFDYP)
-C*****END precision > single
-C*****precision > double
       CALL DDASAC (RES, NSYS, TIM, Z, ZP, TSTOP, INFO, ISEN,
      1             RTOL, ATOL, IDID, SWORK, LSW, ELWRK, LRW,
      2             IELWRK, LIW, RPAR, IPAR, JAC, DRES, DFDYP)
-C*****END precision > double
 C
       IF (IDID .LT. 0) THEN
          WRITE (LOUT, '(1X,A,I3)') 'IDID =', IDID
@@ -487,8 +368,6 @@ C
 C
 C           PRINT TO PLOT FILE
 C
-      WRITE (LSAVE) TIM, P, (Z(I,1), I = 1, NSYS)
-      IF (LSENS) WRITE (LSAVE) ((Z(I,J),I = 1,NSYS), J = 2,II+1)
       NOSAV = NOSAV + 1
 C
 C         CHECK FOR THERMAL RUNAWAY
@@ -502,52 +381,31 @@ C
 C
 C           PRINT OUT SOLUTION
 C
-      IF (TIM .GE. TPRINT) THEN
-         CALL TEXT13 (IPAR, KK, KSYM, LIGN, LOUT,
-     1                P, PATM, RPAR, TIM, XMOL, Z)
-         TLASTP = TIM
-         TPRINT = TPRINT + DTOUT
-C
-C       PRINT    Sensitivity coefficient.
-C
-         IF (LSENS) THEN
-            WRITE (LIGN, '(A)') ' Sensitivity coefficient'
-            WRITE (LIGN, '(I4, 1PE12.4)') (J-1, Z(ls,J), J = 2, II+1)
-         ENDIF
-      ENDIF
-C
-C*****unicos timelimit
-C      CALL TREMAIN (RITIM)
-C      IF (RITIM .LE. 30.0) THEN
-C         WRITE (LOUT, '(/5X,A,/)')
-C     1   'Stop!  Senkin job is nearing its timelimit.'
-C         GO TO 1000
-C      ENDIF
-C*****END unicos timelimit
+      if (make_output) then
+            IF (TIM .GE. TPRINT) THEN
+               CALL TEXT13 (IPAR, KK, KSYM, LOUT, LOUT,
+     1                      P, PATM, RPAR, TIM, XMOL, Z)
+               TLASTP = TIM
+               TPRINT = TPRINT + DTOUT
+            ENDIF
+      endif
 C
       IF (TIM .LT. TSTOP) GO TO 250
 C
 C        LAST TEXT PRINT
 C
 1000  CONTINUE
-      IF (TLASTP .NE. TIM) THEN
-         CALL TEXT13 (IPAR, KK, KSYM, LIGN,
-     1                   LOUT, P, PATM, RPAR, TIM, XMOL, Z)
-C
-C       PRINT    Sensitivity coefficient.
-C
-         IF (LSENS) THEN
-            WRITE (LIGN, '(A)') ' Sensitivity coefficient'
-            WRITE (LIGN, '(I4, 1PE12.4)') (J-1, Z(ls,J), J = 2, II+1)
-         ENDIF
-      ENDIF
-C
-      WRITE (LIGN, 7040) TIGN
-      WRITE (LIGN, 7045) TLIM
-      WRITE (LOUT, 7040) TIGN
-      WRITE (LOUT, 7045) TLIM
-      WRITE (LIGN, 7050) NOSAV
-      WRITE (LOUT, 7050) NOSAV
+
+      if (make_output) then
+            IF (TLASTP .NE. TIM) THEN
+               CALL TEXT13 (IPAR, KK, KSYM, LOUT,
+     1                         LOUT, P, PATM, RPAR, TIM, XMOL, Z)
+            ENDIF
+C     
+            WRITE (LOUT, 7040) TIGN
+            WRITE (LOUT, 7045) TLIM
+            WRITE (LOUT, 7050) NOSAV
+      endif
 C
 C         FORMATS
 C

@@ -44,13 +44,19 @@ program test_main
       call get_tranport_data(t_cfd, p_cfd, y_cfd, num_spec, &
                              D_mix, Lambda_mix, c_p)
 
+      write(6, *) 'mixture diffusion coefficient [CM**2/S]'
       write(6, *) D_mix
+      write(6, *) 'mixture thermal conductivity [ERG/CM*K*S]'
       write(6, *) Lambda_mix
+      write(6, *) 'mean specific heat at constant pressure [ergs/(gm*K)]'
       write(6, *) c_p
 
       call senkin(t_cfd, p_cfd, y_cfd, delta_t_cfd, tols_cfd)
 
-      write(6, *) t_cfd, y_cfd
+      write(6, *) 'temperature [K]'
+      write(6, *) t_cfd
+      write(6, *) 'mole fractions [-]'
+      write(6, *) y_cfd
 
 end program test_main
 
