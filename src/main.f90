@@ -2,6 +2,7 @@
 
 program test_main
       use chemkin_params, only: initialize_chemkin_workarray
+      use output, only: make_output
 
       !   ------- start of user input data ---------
 
@@ -13,8 +14,6 @@ program test_main
       real(8) y_cfd(num_spec)           ! Mass fractions
       real(8) :: delta_t_cfd = 1.0d0    ! s
       real(8) :: tols_cfd(4)            ! Tolerances
-
-      ! logical :: make_output = .false.
       
       ! output transport data
       ! mixture diffusion coefficient [CM**2/S]
@@ -34,6 +33,9 @@ program test_main
 
       ! tolerance values for ODE solver
       data tols_cfd /1.d-8, 1.d-20, 1.d-5, 1.d-5/
+
+      ! flag to generate output
+      make_output = .false.
 
       !   ------- end of user input data ---------
 
