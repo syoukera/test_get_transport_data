@@ -1,8 +1,9 @@
-      SUBROUTINE SENKIN (t_cfd, y_cfd, delta_t_cfd, tols_cfd)
+      SUBROUTINE SENKIN (t_cfd, p_cfd, y_cfd, delta_t_cfd, tols_cfd)
       use chemkin_params
 
       IMPLICIT DOUBLE PRECISION (A-H, O-Z), INTEGER (I-N)
       real(8), intent(in) :: t_cfd
+      real(8), intent(in) :: p_cfd
       real(8), intent(in) :: y_cfd(kk)
       real(8), intent(in) :: delta_t_cfd
       real(8), intent(in) :: tols_cfd(4)
@@ -94,14 +95,15 @@ C
 C
 C          GO TO MAIN LEVEL
 C
-      CALL BEGIN (NSYS, NEQ, ICASE, II, KK, len_int_cklen, len_real_cklen, 
-     1            len_char_cklen, LINKCK, LIN, LOUT, LSAVE, LIGN, LREST, 
-     2            LSENS, LIDAS, LRDAS, LSDAS, int_ckwk(NIDAS), 
-     3            real_ckwk(NRDAS), real_ckwk(NSDAS), real_ckwk(NRPAR), 
-     4            int_ckwk(NIPAR), real_ckwk(NZ), real_ckwk(NZP), 
-     5            real_ckwk(NRTOL), real_ckwk(NATOL), real_ckwk(NXMOL), 
+      CALL BEGIN (NSYS, NEQ, ICASE, II, KK, len_int_cklen, 
+     1            len_real_cklen, len_char_cklen, unit_cklink,
+     2            LIN, LOUT, LSAVE, LIGN, LREST, LSENS, LIDAS, LRDAS,
+     3            LSDAS, int_ckwk(NIDAS), real_ckwk(NRDAS), 
+     4            real_ckwk(NSDAS), real_ckwk(NRPAR), int_ckwk(NIPAR), 
+     5            real_ckwk(NZ), real_ckwk(NZP), real_ckwk(NRTOL), 
+     6            real_ckwk(NATOL), real_ckwk(NXMOL), 
      6            char_ckwk(NKSYM), char_ckwk(IPCCK),
-     6            t_cfd, y_cfd, delta_t_cfd, tols_cfd)
+     6            p_cfd, t_cfd, y_cfd, delta_t_cfd, tols_cfd)
 C
       STOP
       END
@@ -113,10 +115,11 @@ C
      2                  LSENS, LIDAS, LRDAS, LSDAS, IDWORK, DWORK,
      3                  SDWORK, RPAR, IPAR, Z, ZP, RTOL, ATOL, XMOL,
      5                  KSYM, CCKWRK,
-     6                  t_cfd, y_cfd, delta_t_cfd, tols_cfd)
+     6                  p_cfd, t_cfd, y_cfd, delta_t_cfd, tols_cfd)
 
       IMPLICIT DOUBLE PRECISION (A-H, O-Z), INTEGER (I-N)
       real(8), intent(in) :: t_cfd
+      real(8), intent(in) :: p_cfd
       real(8), intent(in) :: y_cfd(kk)
       real(8), intent(in) :: delta_t_cfd
       real(8), intent(in) :: tols_cfd(4)
@@ -174,7 +177,7 @@ C
       TSTOP = delta_t_cfd
       T     = t_cfd
       TOLS  = tols_cfd
-      P     = pressure
+      P     = p_cfd*10d0 ! Dyne/cm2
       call ckytx(y_cfd, IPAR(IPICK), RPAR(IPRCK), XMOL)
 C
 C       PHYSICAL INITIAL CONDITIONS

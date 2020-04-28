@@ -46,7 +46,7 @@ program test_main
       write(6, *) Lambda_mix
       write(6, *) c_p
 
-      call senkin(t_cfd, y_cfd, delta_t_cfd, tols_cfd)
+      call senkin(t_cfd, p_cfd, y_cfd, delta_t_cfd, tols_cfd)
 
 end program test_main
 
