@@ -11,10 +11,10 @@ program test_main
       real(8) :: p_cfd = 1.01325d5*40   ! Pa
       real(8) :: t_cfd = 1000d0         ! K
       real(8) y_cfd(num_spec)           ! Mass fractions
-      real(8) :: delta_t_cfd = 1.0d-12  ! s
+      real(8) :: delta_t_cfd = 1.0d0    ! s
       real(8) :: tols_cfd(4)            ! Tolerances
 
-      ! logical :: MAKE_OUTPUT = .false.
+      ! logical :: make_output = .false.
       
       ! output transport data
       ! mixture diffusion coefficient [CM**2/S]
