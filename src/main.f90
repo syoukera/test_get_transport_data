@@ -5,7 +5,7 @@ program test_main
                                 call_begin
       use output, only: make_output
 
-      !   ------- start of user input data ---------
+      !   ------- user input section ---------
 
       integer,parameter :: num_spec = 53
       
@@ -38,9 +38,11 @@ program test_main
       ! flag to generate output
       make_output = .false.
 
-      !   ------- end of user input data ---------
+      !   ------- initialize section ---------
 
       call initialize_chemkin_workarray()
+      
+      !   ------- transport section ---------
 
       call get_tranport_data(t_cfd, p_cfd, y_cfd, num_spec, &
                              D_mix, Lambda_mix, c_p)
@@ -51,6 +53,8 @@ program test_main
       write(6, *) Lambda_mix
       write(6, *) 'mean specific heat at constant pressure [ergs/(gm*K)]'
       write(6, *) c_p
+      
+      !   ------- chemistry section ---------
 
       call call_begin(p_cfd, t_cfd, y_cfd, delta_t_cfd, tols_cfd)
 
@@ -90,7 +94,11 @@ subroutine get_tranport_data(t_cfd, p_cfd, y_cfd, num_spec, &
       call mcadif(p_calc, t_cfd, x_calc, real_tpwk, D_mix) 
       call mcacon (t_cfd, x_calc, real_tpwk, Lambda_mix)
       call ckcpbs(t_cfd, y_cfd, int_ckwk, real_ckwk, c_p)
+      
 end subroutine get_tranport_data
+
+
+      !   ------- dummy subroutine for SENKIN ---------
 
       SUBROUTINE TEMPT (TIME, TEMP)
       IMPLICIT DOUBLE PRECISION (A-H, O-Z), INTEGER (I-N)
