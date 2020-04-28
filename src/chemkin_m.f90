@@ -34,19 +34,13 @@ module chemkin_params
     ! array pointers
     integer nsys, neq, lsdas, lidas, lrdas
     integer iprd, iprck, ipwt, ipwdot, ipu, iptot
-    integer nrpar, nrdas, nsdas, natol, nrtol, nxmol, nz, nzp, lrtot
-    integer nipar, nidas, litot, ipcck, nksym, lctot
-
-    ! constant physical values
-    real(8) pressure              ! Dyne/cm**2
-    real(8), allocatable :: wt(:) ! Molecular weights gm/mole
+    integer nrpar, nrdas, nsdas, natol, nrtol, nxmol, nz, nzp
+    integer nipar, nidas, ipcck, nksym
+    integer, parameter :: ipick = 20
 
     contains
 
-    subroutine initialize_chemkin_workarray(pressure_Pa)
-        real(8), intent(in) :: pressure_Pa
-        ! to allign with SENKIN
-        integer, parameter  :: ipick       = 20
+    subroutine initialize_chemkin_workarray()
 
         ! open input unit
         open(unit_cklink, form='unformatted', file='./link/cklink')
@@ -63,16 +57,12 @@ module chemkin_params
 
         !   ------- initialize chemkin work array ---------
 
-        len_int_ckwk  = 7000
-        len_real_ckwk = 10000
-        len_char_ckwk = 200
-
-        allocate(int_ckwk(len_int_ckwk+ipick))
+        allocate(int_ckwk(len_int_ckwk))
         allocate(real_ckwk(len_real_ckwk))
         allocate(char_ckwk(len_char_ckwk))
 
         call ckinit(len_int_ckwk, len_real_ckwk, len_char_ckwk, unit_cklink, &
-                    unit_stdout, int_ckwk(ipick), real_ckwk, char_ckwk)
+                    unit_stdout, int_ckwk(ipick), real_ckwk(iprck), char_ckwk)
 
         !   ------- initialize transport work array ---------
 
@@ -83,15 +73,6 @@ module chemkin_params
 
         call mcinit(unit_tplink, unit_stdout, len_int_tpwk, len_real_tpwk, &
                       int_tpwk, real_tpwk)
-
-        !   ------- initialize pointer integer ---------
-
-        call ckindx(int_ckwk, real_ckwk, mm, kk, ii, nfit)
-    
-        !   ------- initialize pointer integer ---------
-        pressure = pressure_Pa*10d0
-        allocate(wt(kk))
-        call ckwt(int_ckwk, real_ckwk, wt)
 
     end subroutine initialize_chemkin_workarray
 
@@ -123,7 +104,7 @@ module chemkin_params
 
         IPRD   = 1
         IPRCK  = IPRD  + II
-        IPWT   = IPRCK + LENR
+        IPWT   = IPRCK + len_real_cklen
         IPWDOT = IPWT  + KK
         IPU    = IPWDOT+ KK
         IPTOT  = IPU   + KK
@@ -138,21 +119,44 @@ module chemkin_params
         NXMOL  = NRTOL + NEQ
         NZ     = NXMOL + KK
         NZP    = NZ    + NEQ
-        LRTOT  = NZP   + NEQ
+        len_real_ckwk  = NZP   + NEQ
 ! C  
 ! C          APPORTION INTEGER WORK SPACE
 ! C  
         NIPAR  = 1
-        NIDAS  = NIPAR + LENI + IPICK
-        LITOT  = NIDAS + LIDAS
+        NIDAS  = NIPAR + len_int_cklen + IPICK
+        len_int_ckwk  = NIDAS + LIDAS
 ! C  
 ! C          APPORTION CHARACTER WORK SPACE
 ! C  
         IPCCK = 1
-        NKSYM = IPCCK + LENC
-        LCTOT = NKSYM + KK
+        NKSYM = IPCCK + len_char_cklen
+        len_char_ckwk = NKSYM + KK
 
     end subroutine calc_pointer
 
+    subroutine call_begin(p_cfd, t_cfd, y_cfd, delta_t_cfd, tols_cfd)
+
+        real(8), intent(inout) :: t_cfd
+        real(8), intent(in)    :: p_cfd
+        real(8), intent(inout) :: y_cfd(kk)
+        real(8), intent(in)    :: delta_t_cfd
+        real(8), intent(in)    :: tols_cfd(4)
+
+        integer :: icase = 1
+        integer  lin, lout, lsave, lign, lrest
+        logical :: lsens = .false.
+
+        DATA LIN/5/, LOUT/6/, LINKCK/25/, LSAVE/7/, LIGN/9/, LREST/10/
+
+        call begin(nsys, neq, icase, ii, kk, len_int_cklen, len_real_cklen,      &
+            len_char_cklen, unit_cklink, lin, lout, lsave, lign, lrest, lsens,   &
+            lidas, lrdas, lsdas, int_ckwk(nidas), real_ckwk(nrdas),              &
+            real_ckwk(nsdas), real_ckwk(nrpar), int_ckwk(nipar), real_ckwk(nz),  &
+            real_ckwk(nzp), real_ckwk(nrtol), real_ckwk(natol), real_ckwk(nxmol),&
+            char_ckwk(nksym), char_ckwk(ipcck),                                  &
+            p_cfd, t_cfd, y_cfd, delta_t_cfd, tols_cfd)
+
+    end subroutine call_begin
 
 end module chemkin_params

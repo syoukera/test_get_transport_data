@@ -17,7 +17,7 @@
 C
 C     DETERMINE MECHANISM SIZE
 C
-      IPICK = 20
+C     IPICK = 20
 C
 C     Define case: constant pressure without sensitivity analysis
 C
@@ -123,10 +123,10 @@ C
      6                  p_cfd, t_cfd, y_cfd, delta_t_cfd, tols_cfd)
       
       use output, only: make_output
+      use chemkin_params, only: ipick, iprck, ipwt, ipwdot, ipu, iprd
 
       IMPLICIT DOUBLE PRECISION (A-H, O-Z), INTEGER (I-N)
       
-
       real(8), intent(inout) :: t_cfd
       real(8), intent(in)    :: p_cfd
       real(8), intent(inout) :: y_cfd(kk)
@@ -150,7 +150,7 @@ C
 C
 C        POINTERS IN COMMON
 C
-      COMMON /POINT/ IPICK, IPRCK, IPWT, IPWDOT, IPU, IPRD
+      ! COMMON /POINT/ IPICK, IPRCK, IPWT, IPWDOT, IPU, IPRD
       IPAR(1) = KK
       IPAR(2) = IPRCK
       IPAR(3) = IPRD
@@ -163,8 +163,8 @@ C
 C         INITIALIZE CHEMKIN
 C         (RESET CHEMKIN WORKSPACE)
 C
-      CALL CKINIT (LENICK, LENRCK, LENCCK, LINKCK, LOUT,
-     1             IPAR(IPICK), RPAR(IPRCK), CCKWRK )
+!       CALL CKINIT (LENICK, LENRCK, LENCCK, LINKCK, LOUT,
+!      1             IPAR(IPICK), RPAR(IPRCK), CCKWRK )
       CALL CKSYMS (CCKWRK, LOUT, KSYM, IERR)
       CALL CKWT   (IPAR(IPICK), RPAR(IPRCK), RPAR(IPWT))
       CALL CKRP   (IPAR(IPICK), RPAR(IPRCK), RU, RUC, PATM)

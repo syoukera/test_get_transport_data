@@ -1,7 +1,8 @@
 !     test code for obtaining chemkin transport data
 
 program test_main
-      use chemkin_params, only: initialize_chemkin_workarray
+      use chemkin_params, only: initialize_chemkin_workarray, &
+                                call_begin
       use output, only: make_output
 
       !   ------- start of user input data ---------
@@ -39,7 +40,7 @@ program test_main
 
       !   ------- end of user input data ---------
 
-      call initialize_chemkin_workarray(p_cfd)
+      call initialize_chemkin_workarray()
 
       call get_tranport_data(t_cfd, p_cfd, y_cfd, num_spec, &
                              D_mix, Lambda_mix, c_p)
@@ -51,7 +52,7 @@ program test_main
       write(6, *) 'mean specific heat at constant pressure [ergs/(gm*K)]'
       write(6, *) c_p
 
-      call senkin(t_cfd, p_cfd, y_cfd, delta_t_cfd, tols_cfd)
+      call call_begin(p_cfd, t_cfd, y_cfd, delta_t_cfd, tols_cfd)
 
       write(6, *) 'temperature [K]'
       write(6, *) t_cfd
