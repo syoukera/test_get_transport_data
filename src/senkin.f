@@ -8,18 +8,16 @@
       real(8), intent(in) :: tols_cfd(4)
       LOGICAL LSENS
 
-      COMMON /POINT/ IPICK, IPRCK, IPWT, IPWDOT, IPU, IPRD
+      DATA LIN/5/, LOUT/6/, LINKCK/25/, LSAVE/7/, LIGN/9/, LREST/10/
 
+      COMMON /POINT/ IPICK, IPRCK, IPWT, IPWDOT, IPU, IPRD
+C
 C     DETERMINE MECHANISM SIZE
 C
       IPICK = 20
 C
-      ! CALL CKLEN (LINKCK, LOUT, len_int_ckwk, len_real_ckwk, len_char_ckwk)
-      ! IF (len_int_ckwk .LE. LI .AND. len_real_ckwk.LE.LR .AND. len_char_ckwk.LE.LC) THEN
-      !    CALL CKINIT (LI, LR, LC, LINKCK, LOUT, int_ckwk(IPICK), real_ckwk, char_ckwk)
-      !    CALL CKINDX (int_ckwk, real_ckwk, MM, KK, II, NFIT)
-      ! ENDIF
-
+C     Define case: constant pressure without sensitivity analysis
+C
       ICASE = 1
       LSENS = .FALSE.
 C
@@ -93,20 +91,17 @@ C
          WRITE (6, *) '  Stop, not enough work space provided.'
          STOP
       ENDIF
-
-      
-      call ckcpbs(t_cfd, y_cfd, int_ckwk, real_ckwk, c_p)
-      write(6, *) 'Specific heat capacity is ', c_p
-
 C
 C          GO TO MAIN LEVEL
 C
-!       CALL BEGIN (NSYS, NEQ, ICASE, II, KK, len_int_ckwk, len_real_ckwk, 
-!      1            len_char_ckwk,
-!      2            LINKCK, LIN, LOUT, LSAVE, LIGN, LREST, LSENS,
-!      3            LIDAS, LRDAS, LSDAS, int_ckwk(NIDAS), real_ckwk(NRDAS), real_ckwk(NSDAS),
-!      4            real_ckwk(NRPAR), int_ckwk(NIPAR), real_ckwk(NZ), real_ckwk(NZP), real_ckwk(NRTOL),
-!      5            real_ckwk(NATOL), real_ckwk(NXMOL), char_ckwk(NKSYM), char_ckwk(IPCCK))
+      CALL BEGIN (NSYS, NEQ, ICASE, II, KK, len_int_cklen, len_real_cklen, 
+     1            len_char_cklen, LINKCK, LIN, LOUT, LSAVE, LIGN, LREST, 
+     2            LSENS, LIDAS, LRDAS, LSDAS, int_ckwk(NIDAS), 
+     3            real_ckwk(NRDAS), real_ckwk(NSDAS), real_ckwk(NRPAR), 
+     4            int_ckwk(NIPAR), real_ckwk(NZ), real_ckwk(NZP), 
+     5            real_ckwk(NRTOL), real_ckwk(NATOL), real_ckwk(NXMOL), 
+     6            char_ckwk(NKSYM), char_ckwk(IPCCK),
+     6            t_cfd, y_cfd, delta_t_cfd, tols_cfd)
 C
       STOP
       END
@@ -117,14 +112,14 @@ C
      1                  LENCCK, LINKCK, LIN, LOUT, LSAVE, LIGN, LREST,
      2                  LSENS, LIDAS, LRDAS, LSDAS, IDWORK, DWORK,
      3                  SDWORK, RPAR, IPAR, Z, ZP, RTOL, ATOL, XMOL,
-     5                  KSYM, CCKWRK)
-C
-C*****precision > double
+     5                  KSYM, CCKWRK,
+     6                  t_cfd, y_cfd, delta_t_cfd, tols_cfd)
+
       IMPLICIT DOUBLE PRECISION (A-H, O-Z), INTEGER (I-N)
-C*****END precision > double
-C*****precision > single
-C      IMPLICIT REAL (A-H, O-Z), INTEGER (I-N)
-C*****END precision > single
+      real(8), intent(in) :: t_cfd
+      real(8), intent(in) :: y_cfd(kk)
+      real(8), intent(in) :: delta_t_cfd
+      real(8), intent(in) :: tols_cfd(4)
 C
       DIMENSION Z(*), ZP(*), XMOL(*), DWORK(*), IDWORK(*), SDWORK(*),
      1          RTOL(*), ATOL(*), RPAR(*), IPAR(*), TOLS(4)
@@ -170,9 +165,17 @@ C
 C
 C        READ KEYWORD INPUT
 C
-      CALL REDKEY (DELT, KK, KSYM, LIN, LOUT, PA,
-     1             RESTRT, T, TLIM, TOLS, TRES, TSTOP, XMOL)
-      P = PA * PATM
+C      CALL REDKEY (DELT, KK, KSYM, LIN, LOUT, PA,
+C     1             RESTRT, T, TLIM, TOLS, TRES, TSTOP, XMOL)
+C
+C        Convert CFD Value to SENKIN Input
+C
+      DELT  = delta_t_cfd
+      TSTOP = delta_t_cfd
+      T     = t_cfd
+      TOLS  = tols_cfd
+      P     = pressure
+      call ckytx(y_cfd, IPAR(IPICK), RPAR(IPRCK), XMOL)
 C
 C       PHYSICAL INITIAL CONDITIONS
 C
