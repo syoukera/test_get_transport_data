@@ -46,7 +46,7 @@ program test_main
       write(6, *) Lambda_mix
       write(6, *) c_p
 
-      call get_next_TY(t_cfd, y_cfd, delta_t_cfd, tols_cfd)
+      call senkin(t_cfd, y_cfd, delta_t_cfd, tols_cfd)
 
 end program test_main
 
@@ -93,9 +93,12 @@ subroutine get_next_TY(t_cfd, y_cfd, delta_t_cfd, tols_cfd)
       integer, parameter :: ltmout  = 26
       integer, parameter :: lskout  = 27
       
-      OPEN (lcklink, form='unformatted',  file='link/cklink')
-      OPEN (ltmout,   form='formatted',   file='output/tmout')
-      OPEN (lskout,   form='formatted',   file='output/skout')
+      ! OPEN (lcklink, form='unformatted',  file='link/cklink')
+      ! OPEN (ltmout,   form='formatted',   file='output/tmout')
+      ! OPEN (lskout,   form='formatted',   file='output/skout')
+
+      ! call senkin_1step(lin, lout, linkck, lsave, lign, lrest, &
+      !             lenrwk, real_ckwk, leniwk, int_ckwk, lencwk)
 
 end subroutine get_next_TY
 

@@ -1,87 +1,32 @@
-      SUBROUTINE SENKIN (LIN, LOUT, LINKCK, LSAVE, LIGN, LREST,
-     1                   LR, R, LI, I, LC, C)
-C
-C*****precision > double
+      SUBROUTINE SENKIN (t_cfd, y_cfd, delta_t_cfd, tols_cfd)
+      use chemkin_params
+
       IMPLICIT DOUBLE PRECISION (A-H, O-Z), INTEGER (I-N)
-C*****END precision > double
-C*****precision > single
-C      IMPLICIT REAL (A-H, O-Z), INTEGER (I-N)
-C*****END precision > single
-C
-C     This subroutine computes the spontaneous ignition delay
-C     for an adiabatic gas mixture in a closed system with either:
-C     (1) pressure constant,
-C     (2) volume a function of time,
-C     (3) pressure constant and temperature a function of time.
-C     The CHEMKIN package is used to handle chemical kinetics.
-C     The time integration and kinetic sensitivity analysis
-C     employ program DASAC.
-C
-C     Author:  Andy Lutz, Computational Mechanics Division, 8245,
-C              Sandia National Laboratories, Livermore, CA, 94550
-C              (415) 294-2761
-C
-C     VERSION 1.8
-C     CHANGES FROM VERSION 1.1
-C     1.  changed REAL*8 to DOUBLE PRECISION
-C     2.  read linking file for array lengths
-C     3.  remove need for COMMON/CKSTRT/
-C     4.  allow upper/lower case input
-C     CHANGES FROM VERSION 1.2
-C     1.  read KERR and MAXTB from linking file
-C     CHANGES FROM VERSION 1.3
-C     1.  modified OPEN, 'tremain' statements for unicos
-C     CHANGES FOR VERSION 1.5
-C     1.  CALL CKLEN will check linking file version and precision
-C     2.  Read statements for new linking file
-C     CHANGES FOR VERSION 1.6
-C     1.  Call CKRHOY to compute variable density in RCONT
-C     CHANGES FOR VERSION 1.7
-C     1.  Call CKLEN and CKINDX instead of reading the linking file,
-C         and changed position of some pointers in I, R, and C
-C         arrays
-C     CHANGES FOR VERSION 1.8
-C     1.  Place reaction constant (D) at front of RPAR (remove A,B,E).
-C     2.  Call CKRDEX instead of CKA to perturb reaction constant.
-C
-      DIMENSION R(*), I(*)
-      CHARACTER C(*)*(*)
-C
+      real(8), intent(in) :: t_cfd
+      real(8), intent(in) :: y_cfd(kk)
+      real(8), intent(in) :: delta_t_cfd
+      real(8), intent(in) :: tols_cfd(4)
       LOGICAL LSENS
-C
+
       COMMON /POINT/ IPICK, IPRCK, IPWT, IPWDOT, IPU, IPRD
-C
-      WRITE (LOUT, 15)
-      WRITE (LIGN, 15)
-   15 FORMAT(
-     1/' SENKIN:  Sensitity Analysis',
-     2/'          Author: Andy Lutz',
-     3/'          CHEMKIN-II Version 1.8, December 1991',
-C*****precision > double
-     4/'          DOUBLE PRECISION')
-C*****END precision > double
-C*****precision > single
-C     4/'          SINGLE PRECISION')
-C*****END precision > single
-C
+
 C     DETERMINE MECHANISM SIZE
 C
       IPICK = 20
 C
-      CALL CKLEN (LINKCK, LOUT, LENI, LENR, LENC)
-      IF (LENI .LE. LI .AND. LENR.LE.LR .AND. LENC.LE.LC) THEN
-         CALL CKINIT (LI, LR, LC, LINKCK, LOUT, I(IPICK), R, C)
-         CALL CKINDX (I, R, MM, KK, II, NFIT)
-      ENDIF
-C
-C        READ SENSITIVITY AND PROBLEM CHOICE KEYWORDS
-C
-      CALL REDSEN (ICASE, LIGN, LIN, LOUT, LSENS)
+      ! CALL CKLEN (LINKCK, LOUT, len_int_ckwk, len_real_ckwk, len_char_ckwk)
+      ! IF (len_int_ckwk .LE. LI .AND. len_real_ckwk.LE.LR .AND. len_char_ckwk.LE.LC) THEN
+      !    CALL CKINIT (LI, LR, LC, LINKCK, LOUT, int_ckwk(IPICK), real_ckwk, char_ckwk)
+      !    CALL CKINDX (int_ckwk, real_ckwk, MM, KK, II, NFIT)
+      ! ENDIF
+
+      ICASE = 1
+      LSENS = .FALSE.
 C
 C         COMPUTE DASAC WORK SPACE
 C
       IF (ICASE.LT.1 .OR. ICASE.GT.5) THEN
-         WRITE (LOUT, '(/1X,A,/)') ' Stop, ICASE not found in SENKIN.'
+         WRITE (6, '(/1X,A,/)') ' Stop, ICASE not found in SENKIN.'
          STOP
       ELSEIF (ICASE .GT. 3) THEN
          NSYS = KK
@@ -104,7 +49,7 @@ C     NOTE: MUST HAVE IPRD 1ST IN RPAR!
 C
       IPRD   = 1
       IPRCK  = IPRD  + II
-      IPWT   = IPRCK + LENR
+      IPWT   = IPRCK + len_real_cklen
       IPWDOT = IPWT  + KK
       IPU    = IPWDOT+ KK
       IPTOT  = IPU   + KK
@@ -124,36 +69,44 @@ C
 C        APPORTION INTEGER WORK SPACE
 C
       NIPAR  = 1
-      NIDAS  = NIPAR + LENI + IPICK
+      NIDAS  = NIPAR + len_int_cklen + IPICK
       LITOT  = NIDAS + LIDAS
 C
 C        APPORTION CHARACTER WORK SPACE
 C
       IPCCK = 1
-      NKSYM = IPCCK + LENC
+      NKSYM = IPCCK + len_char_cklen
       LCTOT = NKSYM + KK
 C
 C          CHECK FOR SUFFICIENT SPACE
 C
-      WRITE (LOUT, 7020) LI, LITOT, LR, LRTOT, LC, LCTOT
+      WRITE (6, 7020) len_int_ckwk, LITOT, len_real_ckwk, LRTOT, 
+     1                len_char_ckwk, LCTOT
  7020 FORMAT (/, '                Working Space Requirements',
      1        /, '                 Provided        Required ',
      2        /, ' Integer  ', 2I15,
      3        /, ' Real     ', 2I15,
      4        /, ' Character', 2I15, /)
 C
-      IF (LRTOT.GT.LR .OR. LITOT.GT.LI .OR. LCTOT.GT.LC) THEN
-         WRITE (LOUT, *) '  Stop, not enough work space provided.'
+      IF (LRTOT.GT.len_real_ckwk .OR. LITOT.GT.len_int_ckwk 
+     1                           .OR. LCTOT.GT.len_char_ckwk) THEN
+         WRITE (6, *) '  Stop, not enough work space provided.'
          STOP
       ENDIF
+
+      
+      call ckcpbs(t_cfd, y_cfd, int_ckwk, real_ckwk, c_p)
+      write(6, *) 'Specific heat capacity is ', c_p
+
 C
 C          GO TO MAIN LEVEL
 C
-      CALL BEGIN (NSYS, NEQ, ICASE, II, KK, LENI, LENR, LENC,
-     1            LINKCK, LIN, LOUT, LSAVE, LIGN, LREST, LSENS,
-     2            LIDAS, LRDAS, LSDAS, I(NIDAS), R(NRDAS), R(NSDAS),
-     3            R(NRPAR), I(NIPAR), R(NZ), R(NZP), R(NRTOL),
-     4            R(NATOL), R(NXMOL), C(NKSYM), C(IPCCK))
+!       CALL BEGIN (NSYS, NEQ, ICASE, II, KK, len_int_ckwk, len_real_ckwk, 
+!      1            len_char_ckwk,
+!      2            LINKCK, LIN, LOUT, LSAVE, LIGN, LREST, LSENS,
+!      3            LIDAS, LRDAS, LSDAS, int_ckwk(NIDAS), real_ckwk(NRDAS), real_ckwk(NSDAS),
+!      4            real_ckwk(NRPAR), int_ckwk(NIPAR), real_ckwk(NZ), real_ckwk(NZP), real_ckwk(NRTOL),
+!      5            real_ckwk(NATOL), real_ckwk(NXMOL), char_ckwk(NKSYM), char_ckwk(IPCCK))
 C
       STOP
       END
