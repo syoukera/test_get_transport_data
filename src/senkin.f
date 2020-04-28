@@ -310,7 +310,7 @@ C
 C
 C       SET PARAMETERS FOR DASAC
 C
-C     INFO(1) = 0
+      INFO(1) = 0
       INFO(3) = 1
       INFO(2) = 1
 C
