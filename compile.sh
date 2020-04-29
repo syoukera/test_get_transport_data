@@ -8,7 +8,7 @@ gfortran -g -o src/tranlib.o   -c src/tranlib.f
 gfortran -g -o src/cklib.o     -c src/cklib.f
 gfortran -g -o src/dasac.o     -c src/dasac.f 
 gfortran -g -o src/senkin.o    -c src/senkin.f -I src
-gfortran -g -o src/main.o      -c src/main.f90 -I src
+gfortran -g -o src/main.o      -c main.f90 -I src
 
 gfortran -g -o get_CFD_values src/main.o src/output_m.o src/chemkin_m.o src/dasac.f \
                               src/senkin.o src/cklib.o src/tranlib.o src/dmath.o
