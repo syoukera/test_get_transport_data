@@ -1,8 +1,8 @@
-!     test code for obtaining chemkin transport data
+!     test code for using CHEMKIN library
 
 program test_main
       use chemkin_params, only: initialize_chemkin_workarray, &
-                                call_begin
+                                get_tranport_data, get_next_TY
       use output, only: make_output
 
       !   ------- user input section ---------
@@ -44,8 +44,7 @@ program test_main
       
       !   ------- transport section ---------
 
-      call get_tranport_data(t_cfd, p_cfd, y_cfd, num_spec, &
-                             D_mix, Lambda_mix, c_p)
+      call get_tranport_data(t_cfd, p_cfd, y_cfd, D_mix, Lambda_mix, c_p)
 
       write(6, *) 'mixture diffusion coefficient [CM**2/S]'
       write(6, *) D_mix
@@ -56,7 +55,7 @@ program test_main
       
       !   ------- chemistry section ---------
 
-      call call_begin(p_cfd, t_cfd, y_cfd, delta_t_cfd, tols_cfd)
+      call get_next_TY(p_cfd, t_cfd, y_cfd, delta_t_cfd, tols_cfd)
 
       write(6, *) 'temperature [K]'
       write(6, *) t_cfd
@@ -64,48 +63,3 @@ program test_main
       write(6, *) y_cfd
 
 end program test_main
-
-!   ----------------------------------------
-
-subroutine get_tranport_data(t_cfd, p_cfd, y_cfd, num_spec, &
-                             D_mix, Lambda_mix, c_p)
-      use chemkin_params
-      
-      ! input values
-      real(8), intent(in) :: t_cfd    ! K
-      real(8), intent(in) :: p_cfd    ! Pa
-      real(8) :: y_cfd(num_spec) ! Mass fractions
-      integer, intent(in) :: num_spec
-
-      ! output transport data
-      ! mixture diffusion coefficient [CM**2/S]
-      real(8), intent(out) :: D_mix(num_spec) 
-      ! mixture thermal conductivity [ERG/CM*K*S]
-      real(8), intent(out) :: Lambda_mix
-      !  mean specific heat at constant pressure [ergs/(gm*K)]
-      real(8), intent(out) :: c_p
-
-      ! variables for calculations
-      real(8) p_calc ! dyne/cm**2
-      real(8) :: x_calc(num_spec) ! Mole fractions
-      p_calc = p_cfd*10.0d0       ! Pa to dyne/cm**2
-      call ckytx(y_cfd, int_ckwk, real_ckwk, x_calc)
-
-      call mcadif(p_calc, t_cfd, x_calc, real_tpwk, D_mix) 
-      call mcacon (t_cfd, x_calc, real_tpwk, Lambda_mix)
-      call ckcpbs(t_cfd, y_cfd, int_ckwk, real_ckwk, c_p)
-      
-end subroutine get_tranport_data
-
-
-      !   ------- dummy subroutine for SENKIN ---------
-
-      SUBROUTINE TEMPT (TIME, TEMP)
-      IMPLICIT DOUBLE PRECISION (A-H, O-Z), INTEGER (I-N)
-      RETURN
-      END
-      
-      SUBROUTINE VOLT (TIME, VOL, DVDT)
-      IMPLICIT DOUBLE PRECISION (A-H, O-Z), INTEGER (I-N)
-      RETURN
-      END

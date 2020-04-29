@@ -1357,3 +1357,15 @@ C
    10 CONTINUE
       RETURN
       END
+
+      !   ------- dummy subroutine for SENKIN ---------
+
+      SUBROUTINE TEMPT (TIME, TEMP)
+      IMPLICIT DOUBLE PRECISION (A-H, O-Z), INTEGER (I-N)
+      RETURN
+      END
+            
+      SUBROUTINE VOLT (TIME, VOL, DVDT)
+      IMPLICIT DOUBLE PRECISION (A-H, O-Z), INTEGER (I-N)
+      RETURN
+      END

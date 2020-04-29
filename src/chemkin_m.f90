@@ -135,7 +135,34 @@ module chemkin_params
 
     end subroutine calc_pointer
 
-    subroutine call_begin(p_cfd, t_cfd, y_cfd, delta_t_cfd, tols_cfd)
+    subroutine get_tranport_data(t_cfd, p_cfd, y_cfd, D_mix, Lambda_mix, c_p)
+
+        ! input values
+        real(8), intent(in) :: t_cfd     ! K
+        real(8), intent(in) :: p_cfd     ! Pa
+        real(8), intent(in) :: y_cfd(kk) ! Mass fractions
+
+        ! output transport data
+        ! mixture diffusion coefficient [CM**2/S]
+        real(8), intent(out) :: D_mix(kk) 
+        ! mixture thermal conductivity [ERG/CM*K*S]
+        real(8), intent(out) :: Lambda_mix
+        !  mean specific heat at constant pressure [ergs/(gm*K)]
+        real(8), intent(out) :: c_p
+
+        ! variables for calculations
+        real(8) p_calc ! dyne/cm**2
+        real(8) :: x_calc(kk) ! Mole fractions
+        p_calc = p_cfd*10.0d0       ! Pa to dyne/cm**2
+        call ckytx(y_cfd, int_ckwk, real_ckwk, x_calc)
+
+        call mcadif(p_calc, t_cfd, x_calc, real_tpwk, D_mix) 
+        call mcacon (t_cfd, x_calc, real_tpwk, Lambda_mix)
+        call ckcpbs(t_cfd, y_cfd, int_ckwk, real_ckwk, c_p)
+
+    end subroutine get_tranport_data
+
+    subroutine get_next_TY(p_cfd, t_cfd, y_cfd, delta_t_cfd, tols_cfd)
 
         real(8), intent(inout) :: t_cfd
         real(8), intent(in)    :: p_cfd
@@ -157,6 +184,6 @@ module chemkin_params
             char_ckwk(nksym), char_ckwk(ipcck),                                  &
             p_cfd, t_cfd, y_cfd, delta_t_cfd, tols_cfd)
 
-    end subroutine call_begin
+    end subroutine get_next_TY
 
 end module chemkin_params
